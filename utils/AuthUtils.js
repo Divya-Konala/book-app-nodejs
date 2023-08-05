@@ -50,7 +50,7 @@ const sendVerficationToken = ({ email, verificationToken }) => {
     from: "Book App pvt lt",
     to: email,
     subject: "Email verfication for Book App",
-    html: `Click <a href="https://book-app-nodejs-production.up.railway.app/${verificationToken}">Here!!</a>`,
+    html: `Click <a href="https://book-app-nodejs-production.up.railway.app/api/${verificationToken}">Here!!</a>`,
   };
 
   transpoter.sendMail(mailOptions, function (err, response) {
