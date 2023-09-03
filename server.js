@@ -24,7 +24,7 @@ const { RateLimiter } = require("./middleware/RateLimiter");
 // variables
 const server = express();
 const PORT = process.env.PORT || 8000;
-const MONGO_URI = `mongodb+srv://divyakonala:${process.env.password}@cluster0.8g2bbaq.mongodb.net/book-app-db`;
+const MONGO_URI = process.env.MONGO_URI;
 server.set("view engine", "ejs");
 const saltRound = Number(process.env.saltRound);
 
@@ -204,9 +204,20 @@ server.post("/login", async (req, res) => {
 });
 
 // Add this route to handle forget password request
-server.get("/forgot-password", (req, res) => {
-  console.log("forgot password called");
-  res.render("forgotPassword");
+server.get("/forgot-password/:token", (req, res) => {
+  const token = req.params.token;
+  const SECRET_KEY = "This is a secret key";
+  jwt.verify(token, SECRET_KEY, async function (err, decoded) {
+    try {
+      res.render("forgotPassword");
+    } catch (err) {
+      return res.send({
+        status: 500,
+        message: "Database Error",
+        error: err,
+      });
+    }
+  });
 });
 
 server.post("/forgot-password", async (req, res) => {
@@ -244,7 +255,7 @@ server.post("/forgot-password", async (req, res) => {
         message: "User not found",
       });
     }
-    const email =userDb.email;
+    const email = userDb.email;
     // Generate and send reset password token
     const resetPasswordToken = generateJWTToken(email, "1h"); // Token valid for 1 hour
     sendResetPasswordLink({ email, resetPasswordToken });
@@ -254,7 +265,6 @@ server.post("/forgot-password", async (req, res) => {
       message: "Reset password link sent to your email",
     });
   } catch (error) {
-    console.log(error);
     return res.send({
       status: 500,
       message: "Database error",
@@ -263,9 +273,66 @@ server.post("/forgot-password", async (req, res) => {
   }
 });
 
+server.post("/reset-password", async (req, res) => {
+  const { loginId, password } = req.body;
+  if (!loginId || !password) {
+    return res.send({
+      status: 400,
+      message: "missing credentials",
+    });
+  }
+  if (typeof loginId !== "string" || typeof password !== "string") {
+    return res.send({
+      status: 400,
+      message: "Invalid data format",
+    });
+  }
 
-server.get("/resend-verification", async (req, res) => {
-  const { email } = req.session.user;
+  //identify loginId and search in database
+  try {
+    let userDb;
+    if (validator.isEmail(loginId)) {
+      userDb = await UserSchema.findOne({ email: loginId });
+    } else {
+      userDb = await UserSchema.findOne({ username: loginId });
+    }
+    if (!userDb) {
+      return res.send({
+        status: 400,
+        message: "user not found, please register first",
+      });
+    }
+
+    //check if email is authenticated
+    if (userDb.emailAuthenticated === false) {
+      return res.send({
+        status: 400,
+        message: "email not authenticated",
+      });
+    }
+    //password encryption
+    const hashPassword = await bcrypt.hash(password, saltRound);
+    //password update
+    const newUserDb = await UserSchema.findByIdAndUpdate(userDb._id, {
+      password: hashPassword,
+    });
+
+    // return res.send({
+    //   status: 200,
+    //   message: "login successful",
+    // });
+    res.render("login");
+  } catch (error) {
+    return res.send({
+      status: 500,
+      message: "Database error",
+      error: error,
+    });
+  }
+});
+
+server.post("/resend-verification", async (req, res) => {
+  const { email } = req.body;
 
   try {
     // Generate and send verification token
@@ -335,7 +402,6 @@ server.post("/create-item", RateLimiter, isAuth, async (req, res) => {
         data: bookDb,
       });
     } catch (error) {
-      console.log(error);
       return res.send({
         status: 500,
         message: "Database error",
@@ -449,26 +515,15 @@ server.post("/delete-item", RateLimiter, isAuth, async (req, res) => {
   }
 });
 
-//pagination
-server.get("/dashboard_pagination", RateLimiter, isAuth, async (req, res) => {
-  const skip = req.query.skip || 0; //client
-  const limit = 5; //backend
+server.get("/dashboarddata", RateLimiter, isAuth, async (req, res) => {
   try {
-    const books = await BookSchema.aggregate([
-      //pagination
-      {
-        $facet: {
-          data: [{ $skip: parseInt(skip) }, { $limit: limit }],
-        },
-      },
-    ]);
+    const books = await BookSchema.find();
     return res.send({
       status: 200,
       message: "Read Success",
-      data: books[0].data,
+      data: books,
     });
   } catch (error) {
-    console.log(error);
     return res.send({
       status: 500,
       message: "Database Error",

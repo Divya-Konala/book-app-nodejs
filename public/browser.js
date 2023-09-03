@@ -1,6 +1,3 @@
-// const { default: axios } = require("axios");
-
-let skip = 0;
 document.addEventListener("click", async (e) => {
   e.preventDefault();
   if (e.target.classList.contains("add_book")) {
@@ -22,6 +19,18 @@ document.addEventListener("click", async (e) => {
       })
       .then((res) => {
         if (res.data.status == 201) {
+          document.getElementById(
+            "book_list"
+          ).innerHTML += `<div class="list-group-item">
+          <h1 class="title"> ${title.value}</h1>
+          <p class="author">By ${author.value}</p>
+          <p class="category">Category: ${category.value} </p>
+          <p class="price">Price: ₹${price.value}</p>
+          <div>
+          <button data-id="${res.data.data._id}" class="edit-me">Edit</button>
+          <button data-id="${res.data.data._id}" class="delete-me">Delete</button>
+      </div>
+      </div>`;
           title.value = "";
           author.value = "";
           price.value = "";
@@ -33,8 +42,6 @@ document.addEventListener("click", async (e) => {
       .catch((error) => {
         console.log(error);
       });
-  } else if (e.target.classList.contains("show_more")) {
-    displayBookList();
   } else if (e.target.classList.contains("edit-me")) {
     const bookId = e.target.getAttribute("data-id");
     // Fetch the book data using bookId from the server
@@ -61,7 +68,7 @@ document.addEventListener("click", async (e) => {
       .catch((error) => {
         console.log(error);
       });
-  }else if (e.target.classList.contains("delete-me")) {
+  } else if (e.target.classList.contains("delete-me")) {
     let id = e.target.getAttribute("data-id");
     axios
       .post("/delete-item", { id })
@@ -85,14 +92,14 @@ window.onload = function () {
 function displayBookList() {
   //read book list
   axios
-    .get(`/dashboard_pagination?skip=${skip}`)
+    .get(`/dashboarddata`)
     .then((res) => {
       if (res.data.status != 200) {
+        console.log(res.data);
         alert(res.data.message);
         return;
       }
       const books = res.data.data;
-
       document.getElementById("book_list").insertAdjacentHTML(
         "beforeend",
         books
@@ -110,7 +117,7 @@ function displayBookList() {
           })
           .join("")
       );
-      skip += books.length;
+      // skip += books.length;
     })
     .catch((error) => {
       alert(error);

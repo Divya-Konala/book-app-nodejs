@@ -28,10 +28,9 @@ const cleanUpAndValidate = ({ name, email, password, username, phone }) => {
 };
 
 const generateJWTToken = (email) => {
-  const JWT_TOKEN = jwt.sign({email}, SECRET_KEY);
+  const JWT_TOKEN = jwt.sign({ email }, SECRET_KEY);
   return JWT_TOKEN;
 };
-
 
 const sendVerficationToken = ({ email, verificationToken }) => {
   //nodemailer
@@ -50,8 +49,9 @@ const sendVerficationToken = ({ email, verificationToken }) => {
     from: "Book App pvt lt",
     to: email,
     subject: "Email verfication for Book App",
-    html: `Click <a href="https://book-app-nodejs-production.up.railway.app/api/${verificationToken}">Here!!</a>`,
+    html: `Click <a href="https://book-app-nodejs-production.up.railway.app/api/${verificationToken}">Here!! </a>to authenticate your email with Books App`,
   };
+
 
   transpoter.sendMail(mailOptions, function (err, response) {
     if (err) throw err;
@@ -75,7 +75,7 @@ function sendResetPasswordLink({ email, resetPasswordToken }) {
     from: "Book App pvt lt",
     to: email,
     subject: "Reset Your Password",
-    html: `Click <a href="https://book-app-nodejs-production.up.railway.app/forgot-password/${resetPasswordToken}">Here!!</a> to Reset Password`
+    html: `Click <a href="https://book-app-nodejs-production.up.railway.app/forgot-password/${resetPasswordToken}">Here!!</a> to Reset Password`,
   };
 
   transporter.sendMail(mailOptions, (error, info) => {
@@ -87,5 +87,9 @@ function sendResetPasswordLink({ email, resetPasswordToken }) {
   });
 }
 
-
-module.exports = { cleanUpAndValidate, generateJWTToken, sendVerficationToken, sendResetPasswordLink};
+module.exports = {
+  cleanUpAndValidate,
+  generateJWTToken,
+  sendVerficationToken,
+  sendResetPasswordLink,
+};
